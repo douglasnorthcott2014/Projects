@@ -1,0 +1,328 @@
+---
+title: "Electric Bike/Scooter Analysis"
+author: "Doug Northcott"
+date: "6/14/2019"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Business Demand Analysis
+
+This is a business analysis for demand for an Electric Scooter/Ride share company. This industry is one of the most rapidly growing industries today with growth expected to continue at 60% until 2025. The growth is so outstanding the rideshare leaders in the car industry, such as Lyft and Uber are starting to expand into these markets. The market was vauled at $5.2 Million in 2017 in the USA and is expected to reach $8.5 Million by 2025.This would make this market between 30%-50% of the overall bicycle market in the USA.
+
+```{r Bike/scooter analysis, echo=FALSE, include=FALSE}
+set.seed(1)
+library(haven)
+library(ggplot2)
+library(tidyverse)
+Bike_Share_Day <- read_sav("C:/Users/dougl/OneDrive/Desktop/Bike_Share_Day.sav")
+View(Bike_Share_Day)
+```
+
+## The Data
+
+The data for this analysis was provided from previous company logs recording data such as day, weather and usage. Being largely created by hand the data set is primarily considered as already being "clean". The has 16 variable and 731 lines of observations.
+
+## The Intended Outcomes
+
+One of the biggest issues for any company providing a service, the the prediction of demand. This can affect all levels of operations, from the numbers of scooters required to meet demand on anyone day through maintenance and staffing levels.Therefore the primary target of this analysis is to predict potential demand for current markets for the electric scooters and bikes. With name brands like Uber entering this market providing motivation for expansion. The send target of this analysis is to provided predictive modelling to provide ideal locations for the launching of this service in international markets
+  
+## Testing for Normality of Data
+
+
+```{r}
+summary(Bike_Share_Day)
+shapiro.test(Bike_Share_Day$Total_bikes)
+
+```
+Looking at the Shapiro wilKs test p-value you can clear see that the main response variable of Total Bikes isless than 5%. This mean that the data follows a normal distribution.
+  
+## Density Plot of the Response Variable
+
+```{r}
+library(ggplot2)
+ggplot(Bike_Share_Day, aes(x=Total_bikes))+
+  geom_density()
+Bike_Share_Day <- as.data.frame(Bike_Share_Day)
+qplot(date, Total_bikes, data= Bike_Share_Day) + geom_smooth()
+ 
+
+```
+Looking at the density plot and a simple quartile plot you can see that the data is fairly symetrical and follows a clear trend.
+  
+## Hypothesis 1.
+
+There will be a greater demand for scooter on Holidays and weekends.
+
+Please not this hypothesis would actually appear as an Alternate  to the Null hypothesis which would state that Total_bike Useage will not differ on Holidays to that of a Non Holiday.
+
+*(please note Holiday totals are factored up by 33.81 to account for the lower number of days)
+
+```{r, echo=FALSE}
+library(readxl)
+Bike_Share_Day_factored <- read_excel("C:/Users/dougl/Downloads/Bike_Share_Day factored.xlsx")
+View(Bike_Share_Day_factored)
+library(tidyverse)
+Bike_Share_Day_factored$holiday <- as.factor(Bike_Share_Day_factored$holiday)
+ggplot(Bike_Share_Day_factored, aes(x= holiday, y= Total_bikes, col= holiday, fill = holiday))+
+  geom_bar(stat = "identity")+
+  xlab("Non Holiday = 0, Holiday = 1")
+Bike_Share_Day_factored$holiday <- as.numeric(Bike_Share_Day_factored$holiday)
+t.test(Bike_Share_Day_factored$holiday, Bike_Share_Day_factored$Total_bikes, alternative = "two.sided")
+Bike_Share_Day$weekday <- as.factor(Bike_Share_Day$weekday)
+ggplot(Bike_Share_Day, aes(x= weekday, y= Total_bikes, col= weekday, fill= weekday))+
+  geom_histogram(stat = "identity")+
+  xlab("Mon-Sun = 1-7")
+Bike_Share_Day$weekday <- as.numeric(Bike_Share_Day$weekday)
+
+```
+The average difference of Total_bikes which is the average bike useage is significant (t-test -9.19, p < 0.05) therefore with a negative t-test, with a two tail test confirms that there is more scooter useage on Non Holidays.
+
+```{r, echo=FALSE}
+Bike_Share_Day_factor2 <- read_excel("C:/Users/dougl/Downloads/Bike_Share_Day factor2.xlsx")
+View(Bike_Share_Day_factor2)
+library(tidyverse)
+ggplot(Bike_Share_Day_factor2, aes(x= workingday, y= Total_bikes))+
+  geom_bar(stat = "identity")+
+  xlab("Working Day = 1, Weeekend or Holiday = 0")
+library(readxl)
+Binary_weekday <- read_excel("C:/Users/dougl/Downloads/Binary weekday.xlsx")
+View(Binary_weekday)
+str(Binary_weekday)
+t.test(Bike_Share_Day$workingday, Bike_Share_Day$Total_bikes)
+Binary_weekday$weekday <- as.factor(Binary_weekday$weekday)
+ggplot(Binary_weekday, aes(weekday, Total_bikes, fill= weekday))+
+  geom_bar(stat = "identity")+
+  xlab("Working_day, M-F= 0, Weekend= 1")
+Binary_weekday$weekday <- as.numeric(Binary_weekday$weekday)
+
+t.test(Binary_weekday$weekday, Binary_weekday$Total_bikes)
+
+```
+* Please not data was scaled to allow for the differences in the number of days in sample.
+
+There was a significant difference in the numbers from the weekend (p < 0.05) with usage of Total_bikes higher during the week
+
+Therefore, Hypothesis 1# was confirmed  about higher usage on the weekend. However, usage on Holidays was confirmed to be lower than that on non holidays.
+
+
+## Hypothesis 2
+Locations with good weather will have a greater demand for bikes.
+
+Null: Hypothesis will be that all locations have the same demand for bikes regardless of weather.
+```{r, echo=FALSE, include=FALSE}
+Bike_Share_Day_factor2 <- read_excel("C:/Users/dougl/Downloads/Bike_Share_Day factor2.xlsx")
+View(Bike_Share_Day_factor2)
+
+```
+
+
+```{r, results='hide', echo=FALSE, include=FALSE}
+bikevar <- Bike_Share_Day[3:16]
+scale(bikevar)
+bikevar$weather <- as.factor(bikevar$weather)
+```
+```{r, echo=FALSE}
+ggplot(bikevar, aes(x= weather, y= Total_bikes, fill= weather))+
+  geom_bar(stat = "identity")+
+  xlab("Good Weather = 1, Moderate Weather = 2, Bad Weather = 3")
+```
+
+Hypothesis 2 is likely confirmed although due to the weather being a non binary factors I will subject the weather to linear regression.
+
+## Exploratory Data Analysis: Basic Regression
+```{r, echo=FALSE}
+modellin <- lm(Total_bikes ~., bikevar)
+print(modellin)
+```
+The above linear regression shows how the various variables interact with each other. As you can see Casual and registered actually are dependent/response variables, with atemp, temp, hum and windspeed all having significant regression coefficients.  
+## Correlation
+```{r}
+atemp <- cor(bikevar$Total_bikes, bikevar$atemp)
+temp <-cor(bikevar$Total_bikes, bikevar$temp)
+hum <- cor(bikevar$Total_bikes, bikevar$hum)
+windspeed <- cor(bikevar$Total_bikes, bikevar$windspeed)
+```
+
+```{r, echo=FALSE}
+print("atemp")
+print(atemp)
+print("temp")
+print(temp)
+print("hum")
+print(hum)
+print("windspeed")
+print(windspeed)
+```
+As you can see from the above correlation analysis the variables with the best pearson correlation to Total bikes is both atemp and temp.
+
+## Gradient Boosted Regression Trees
+
+To analysis the interaction of the variable compared to the main response variable further and the data being normal I am going to model the data using machine learning gradient boosted regression trees to a depth of 50,000 trees.
+```{r, echo=FALSE}
+set.seed(1)
+bikevar <- subset(bikevar, select = -c(registered, casual) )
+rows <- sample(nrow(bikevar))
+bikevar <- bikevar[rows, ]
+bikevar_train <- bikevar[1:400, ]
+bikevar_test <- bikevar[401:731, ]
+```
+
+```{r}
+library(gbm)
+model <- gbm(Total_bikes ~ ., 
+             data = bikevar_train,
+             distribution = "gaussian",
+              n.trees = 50000,
+  interaction.depth = 1,
+  shrinkage = 0.001,
+  cv.folds = 5,
+  n.cores = NULL,
+  verbose = FALSE)
+ntree_opt_cv <- gbm.perf(model, method= "cv")
+ntree_opt_oob <- gbm.perf(model, method= "OOB")
+
+print(model)
+summary(model)
+```
+As you can see from the above data the model maxed out its analysis of the variable influence at 49,999.
+```{r}
+set.seed(1)
+library(Metrics)
+model <- gbm(Total_bikes ~ ., 
+             data = bikevar_train,
+             distribution = "gaussian",
+              n.trees = ntree_opt_oob,
+  interaction.depth = 1,
+  shrinkage = 0.001,
+  cv.folds = 5,
+  n.cores = NULL,
+  verbose = FALSE)
+pred <- predict(object = model, data = bikevar_test, n.trees = ntree_opt_oob)
+rmse(bikevar_test$Total_bikes, pred)
+
+```
+It is clear from the analysis that the weather variables are the primary influence on the predicted outcome, however there is likely to much negative influence from other variables to achieve and accurate prediction as shown by an RMSE > 1000.
+
+## Removing Non Scalar Variable
+
+Removing the non scalar variables for a more effective analysis, it is clear that the weather has one of the largest effect on Total Bikes. Testing to depth of 15000 trees.
+```{r, echo=FALSE, include= FALSE}
+set.seed(1)
+library(Metrics)
+library(readxl)
+Bike_Share_Day_linvar <- read_excel("C:/Users/dougl/Downloads/Bike_Share_Day linvar.xlsx")
+View(Bike_Share_Day_linvar)
+Bike_Share_Day_linvar <- scale(Bike_Share_Day_linvar)
+rows <- sample(nrow(Bike_Share_Day_linvar))
+Bike_Share_Day_linvar <- Bike_Share_Day_linvar[rows, ]
+Bike_Share_Day_linvar <- as.data.frame(Bike_Share_Day_linvar)
+Bike_Share_Day_linvar_train <- Bike_Share_Day_linvar[1:400, ]
+Bike_Share_Day_linvar_test <- Bike_Share_Day_linvar[401:731, ]
+```
+
+```{r}
+set.seed(1)
+model <- gbm(Total_bikes ~ ., 
+             data = Bike_Share_Day_linvar_train,
+             distribution = "gaussian",
+              n.trees = 15000,
+  interaction.depth = 1,
+  shrinkage = 0.001,
+  cv.folds = 5,
+  n.cores = NULL,
+  verbose = FALSE)
+print(model)
+ntree_opt_cv1 <- gbm.perf(model, method= "cv")
+ntree_opt_oob1 <- gbm.perf(model, method= "OOB")
+model <- gbm(Total_bikes ~ ., 
+             data = Bike_Share_Day_linvar_train,
+             distribution = "gaussian",
+              n.trees = ntree_opt_cv1,
+  interaction.depth = 1,
+  shrinkage = 0.001,
+  cv.folds = 5,
+  n.cores = NULL,
+  verbose = FALSE)
+pred <- predict(model, Bike_Share_Day_linvar_test)
+rmse(Bike_Share_Day_linvar_test$Total_bikes, pred)
+summary(model)
+
+
+```
+with an RMSE of 0.656 on a test set this model is highly accurrate with a potential for predicting future needs.
+
+## Caret Machine Learning Model "Ranger"
+```{r, }
+set.seed(1)
+library(caret)
+library(Metrics)
+model <- train(
+  Total_bikes~. ,
+  tuneLength = 1,
+  data = Bike_Share_Day_linvar_train, method = "ranger",
+  trControl = trainControl(method = "cv", number = 5, verboseIter = TRUE)
+)
+print(model)
+```
+With an RMSE (0.66) similar to that of Gradient Boosted Regression Trees Caret "Ranger" will also provide a accurate forecasting model for future needs
+
+## Linear Regression Machine Learning Model
+```{r}
+set.seed(1)
+Bike_Share_Day$atemp <- scale(Bike_Share_Day$atemp)
+Bike_Share_Day$Total_bikes <- scale(Bike_Share_Day$Total_bikes)
+
+model <- train(
+  Total_bikes ~ .,
+  tuneLength = 3,
+  data = Bike_Share_Day_linvar_train, method = "lm",
+  trControl = trainControl(method = "cv", number = 5, verboseIter = TRUE))
+print(model)
+```
+## ANOVA Machine Learning Model
+```{r}
+library(rpart)
+model <- rpart(Total_bikes ~., Bike_Share_Day_linvar_train, method = "anova")
+pred <- predict(model, Bike_Share_Day_linvar_test)
+print(model)
+rmse(Bike_Share_Day_linvar_test$Total_bikes, pred)
+```
+## Analysing Factorial Elements
+
+```{r, echo=FALSE}
+set.seed(1)
+Bike_Share_Day_factvar <- read_excel("C:/Users/dougl/OneDrive/Desktop/Bike_Share_Day_factvar.xlsx")
+View(Bike_Share_Day_factvar)
+Bike_Share_Day_factvar <- scale(Bike_Share_Day_factvar)
+rows <- sample(nrow(Bike_Share_Day_factvar))
+Bike_Share_Day_factvar <- Bike_Share_Day_factvar[rows, ]
+Bike_Share_Day_factvar <- as.data.frame(Bike_Share_Day_factvar)
+Bike_Share_Day_factvar_train <- Bike_Share_Day_factvar[1:400, ]
+Bike_Share_Day_factvar_test <- Bike_Share_Day_factvar[401:731, ]
+```
+
+```{r}
+model <- gbm(Total_bikes ~ ., 
+             data = Bike_Share_Day_factvar_train,
+             distribution = "gaussian",
+              n.trees = 50000,
+  interaction.depth = 1,
+  shrinkage = 0.001,
+  cv.folds = 5,
+  n.cores = NULL,
+  verbose = FALSE)
+print(model)
+pred <- predict(model, Bike_Share_Day_factvar_test)
+rmse(Bike_Share_Day_factvar_test$Total_bikes, pred)
+summary(model)
+```
+## Conclusion
+
+After analysis, the data signified that the primary factor affecting Total Number of bikes is the Temperature. The third largest influence on the response variable is the Year demonstrating a growing trend of the usage of such a service. However, Year is not a relavent factor for forecasting in new locations. Using either Caret, or Gradient boosted regression tree’s we are able to successfully predict bike usage. In future plans for expansion we will be able to predict likely bike demand, using these models. Therefore the primary consideration for future expansion locations we should primarily look as warmer climate locations.
